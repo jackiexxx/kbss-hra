@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07142B">
+<title>Rozděl tokeny</title>
+<link rel="stylesheet" href="/fonts/wdth.css">
+<style>
+  :root {
+    --ink: #07142B; --panel: #0E2242; --line: #1E3664; --paper: #F3F5EC; --muted: #8C9BB8; --warn: #FF8A7A;
+    --font: 'Archivo Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { background: var(--ink); }
+  body { font-family: var(--font); color: var(--paper); min-height: 100dvh; font-variant-numeric: tabular-nums;
+         padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 20px 18px 140px; }
+  .hidden { display: none !important; }
+
+  h1 { font-size: 34px; line-height: 1.02; font-weight: 800; font-stretch: 80%; letter-spacing: -.005em; }
+  p.sub { color: #C3CCDD; font-size: 17px; line-height: 1.45; margin-top: 12px; }
+
+  /* ---- join ---- */
+  .join { padding-top: 8vh; }
+  label { display: block; font-size: 15px; color: var(--muted); margin: 36px 0 8px; }
+  input[type=text] { width: 100%; font: inherit; font-size: 24px; font-weight: 600; color: var(--paper); background: var(--panel);
+    border: 2px solid var(--line); border-radius: 14px; padding: 16px 16px; }
+  input[type=text]::placeholder { color: #5E6F92; font-weight: 400; }
+  .err { color: var(--warn); font-size: 15px; margin-top: 10px; min-height: 20px; }
+  .primary { display: block; width: 100%; background: var(--paper); color: var(--ink); font-size: 20px; font-weight: 800;
+    font-stretch: 95%; padding: 18px; border-radius: 14px; margin-top: 18px; }
+  .primary:disabled { background: var(--line); color: #7486A8; cursor: default; }
+  .ghost { display: block; width: 100%; border: 2px solid var(--line); font-size: 18px; font-weight: 700; padding: 16px; border-radius: 14px; }
+
+  /* ---- allocation ---- */
+  .bank { position: sticky; top: 0; z-index: 5; background: var(--ink); padding: 14px 0 14px; margin: 0 -18px; padding-left: 18px; padding-right: 18px;
+          border-bottom: 1px solid var(--line); }
+  .bank .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .bank .left { font-size: 22px; font-weight: 800; font-stretch: 88%; }
+  .bank .left.done { color: #9BE15D; }
+  .bank .right { font-size: 15px; color: var(--muted); }
+  .bank .right.full { color: var(--paper); }
+  .chips { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 4px; margin-top: 10px; }
+  .chips i { height: 12px; border-radius: 3px; background: var(--paper); transition: background .2s; }
+  .chips i.used { background: var(--c, var(--line)); opacity: .9; }
+  .hint { font-size: 14px; color: var(--warn); margin-top: 8px; min-height: 18px; }
+  .timer { font-size: 15px; color: var(--muted); }
+
+  .me { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 0 6px; font-size: 15px; color: var(--muted); }
+  .me b { color: var(--paper); }
+
+  ul.trends { list-style: none; display: grid; gap: 8px; margin-top: 10px; }
+  .t { display: grid; grid-template-columns: 6px 1fr auto; align-items: center; gap: 12px; background: var(--panel);
+       border-radius: 14px; padding: 10px 10px 10px 0; border: 2px solid transparent; transition: border-color .2s, background .2s; overflow: hidden; }
+  .t .sw { align-self: stretch; background: var(--c); opacity: .35; border-radius: 0 3px 3px 0; transition: opacity .2s; }
+  .t.on { border-color: var(--c); background: #10284D; }
+  .t.on .sw { opacity: 1; }
+  .t.locked { opacity: .45; }
+  .t .nm { font-size: 18px; font-weight: 700; font-stretch: 86%; line-height: 1.15; padding-left: 4px; }
+  .t .share { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 2px; font-stretch: 100%; }
+  .ctl { display: grid; grid-template-columns: 48px 44px 48px; align-items: center; }
+  .ctl button { height: 48px; border-radius: 12px; font-size: 28px; font-weight: 500; line-height: 1; background: #17305A; user-select: none; }
+  .ctl button:disabled, .ctl button[aria-disabled="true"] { opacity: .3; cursor: default; }
+  .ctl .v { text-align: center; font-size: 24px; font-weight: 800; font-stretch: 105%; }
+
+  details.rules { margin-top: 22px; color: #C3CCDD; font-size: 15px; line-height: 1.5; border-top: 1px solid var(--line); padding-top: 14px; }
+  details.rules summary { cursor: pointer; font-weight: 700; color: var(--paper); font-size: 16px; }
+  details.rules p { margin-top: 8px; }
+
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, var(--ink) 30%); padding: 26px 18px calc(16px + env(safe-area-inset-bottom)); z-index: 10; }
+  .dock .primary { max-width: 484px; margin: 0 auto; }
+
+  /* ---- sheet ---- */
+  .sheet { position: fixed; inset: 0; background: rgba(3,9,20,.72); z-index: 20; display: flex; align-items: flex-end; }
+  .sheet .box { background: var(--panel); width: 100%; max-width: 520px; margin: 0 auto; border-radius: 22px 22px 0 0; padding: 24px 18px calc(20px + env(safe-area-inset-bottom));
+                animation: up .25s ease-out; }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .sheet h2 { font-size: 26px; font-weight: 800; font-stretch: 85%; }
+  .sheet p { color: #C3CCDD; font-size: 15px; margin-top: 6px; }
+  .summary { display: grid; gap: 10px; margin: 20px 0 8px; }
+  .summary .r { display: grid; grid-template-columns: 1fr 44px; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; font-stretch: 88%; }
+  .summary .bar { height: 8px; border-radius: 4px; background: var(--c); margin-top: 5px; }
+  .summary .n { text-align: right; font-size: 20px; font-weight: 800; }
+  .row2 { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 16px; }
+  .row2 .primary { margin: 0; }
+
+  /* ---- status screens ---- */
+  .status { padding-top: 10vh; }
+  .status .big { font-size: 64px; font-weight: 800; font-stretch: 115%; line-height: 1; margin-top: 26px; }
+  .status .lbl { color: var(--muted); font-size: 16px; margin-top: 6px; }
+  .status .summary { margin-top: 30px; }
+
+  .conn { position: fixed; top: 0; left: 0; right: 0; background: var(--warn); color: var(--ink); text-align: center; font-size: 14px; font-weight: 700; padding: 6px; z-index: 30; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="conn hidden" id="conn">Obnovuji spojení…</div>
+<div class="wrap">
+
+  <!-- 1. přezdívka -->
+  <section class="join hidden" id="vJoin">
+    <h1 id="title"></h1>
+    <p class="sub" id="subtitle"></p>
+    <form id="joinForm" autocomplete="off">
+      <label for="nick">Přezdívka, pod kterou tě uvidí sál</label>
+      <input type="text" id="nick" maxlength="18" placeholder="např. Tereza z Brna" enterkeyhint="go" autocapitalize="words">
+      <div class="err" id="joinErr"></div>
+      <button class="primary" type="submit" id="joinBtn">Vstoupit do hry</button>
+    </form>
+  </section>
+
+  <!-- 2. rozdělení tokenů -->
+  <section class="hidden" id="vAlloc">
+    <div class="bank">
+      <div class="top">
+        <div class="left" id="left"></div>
+        <div class="right" id="used"></div>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="hint" id="hint"></div>
+    </div>
+    <div class="me"><span>Hraješ jako <b id="meNick"></b></span><span class="timer" id="timer"></span></div>
+    <ul class="trends" id="trends"></ul>
+    <details class="rules">
+      <summary>Jak se vyhrává</summary>
+      <p>Po skončení hlasování se sečtou tokeny všech hráčů. Vyhrává ten, jehož rozdělení se nejvíc shoduje s rozdělením celého sálu (bez jeho vlastního tipu).</p>
+      <p>Shoda je součet překryvů: když dáš trendu 30 % a sál mu dá 20 %, započítá se ti 20. Dáš-li mu 10 %, započítá se 10. Maximum je 100 %.</p>
+      <p>Při rovnosti rozhoduje menší odchylka v jednotlivých trendech, pak dřívější odeslání. Odeslaný tip nejde změnit.</p>
+    </details>
+    <div class="dock"><button class="primary" id="sendBtn" disabled></button></div>
+  </section>
+
+  <!-- 3. stavové obrazovky -->
+  <section class="status hidden" id="vStatus">
+    <h1 id="stTitle"></h1>
+    <p class="sub" id="stText"></p>
+    <div id="stResult"></div>
+    <div class="summary" id="stSummary"></div>
+  </section>
+</div>
+
+<div class="sheet hidden" id="sheet">
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h2 id="sheetTitle">Odeslat tip?</h2>
+    <p>Po odeslání už rozdělení nepůjde změnit.</p>
+    <div class="summary" id="sheetSummary"></div>
+    <div class="err" id="sendErr"></div>
+    <div class="row2">
+      <button class="ghost" id="backBtn">Upravit</button>
+      <button class="primary" id="confirmBtn">Odeslat tip</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(async () => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pct = n => n.toLocaleString('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' %';
+  const plural = (n, a, b, c) => n === 1 ? a : (n >= 2 && n <= 4) ? b : c;
+
+  const cfg = await (await fetch('/api/config')).json();
+  const { TOKENS, MAX_TRENDS, trends } = cfg;
+  $('title').textContent = cfg.title;
+  $('subtitle').textContent = cfg.subtitle;
+  $('nick').maxLength = cfg.NICK_MAX;
+  document.title = cfg.title;
+
+  // identita zařízení
+  let deviceId = null;
+  try { deviceId = localStorage.getItem('tg-device'); } catch (e) {}
+  if (!deviceId) {
+    deviceId = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36));
+    try { localStorage.setItem('tg-device', deviceId); } catch (e) {}
+  }
+
+  // rozpracované rozdělení přežije obnovení stránky
+  let alloc = Object.fromEntries(trends.map(t => [t.id, 0]));
+  try { Object.assign(alloc, JSON.parse(localStorage.getItem('tg-draft') || '{}')); } catch (e) {}
+  const saveDraft = () => { try { localStorage.setItem('tg-draft', JSON.stringify(alloc)); } catch (e) {} };
+
+  let S = null, clockOffset = 0;
+  const socket = io({ transports: ['websocket', 'polling'] });
+  socket.on('connect', () => { $('conn').classList.add('hidden'); socket.emit('player:hello', { deviceId }); });
+  socket.on('disconnect', () => $('conn').classList.remove('hidden'));
+  socket.on('player:state', s => { S = s; clockOffset = s.serverNow - Date.now(); render(); });
+
+  // ---------- join ----------
+  $('joinForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const nick = $('nick').value.trim();
+    $('joinErr').textContent = '';
+    $('joinBtn').disabled = true;
+    socket.timeout(8000).emit('player:join', { deviceId, nick }, (err, res) => {
+      $('joinBtn').disabled = false;
+      if (err) return $('joinErr').textContent = 'Server neodpovídá. Zkontroluj připojení a zkus to znovu.';
+      if (res.error) $('joinErr').textContent = res.error;
+    });
+  });
+
+  // ---------- allocation UI ----------
+  $('chips').style.setProperty('--n', TOKENS);
+  $('trends').innerHTML = trends.map(t => `
+    <li class="t" data-id="${t.id}" style="--c:${t.color}">
+      <span class="sw"></span>
+      <span class="nm">${esc(t.name)}<span class="share"></span></span>
+      <span class="ctl">
+        <button data-d="-1" aria-label="Ubrat token: ${esc(t.name)}">−</button>
+        <span class="v" aria-live="polite">0</span>
+        <button data-d="1" aria-label="Přidat token: ${esc(t.name)}">+</button>
+      </span>
+    </li>`).join('');
+
+  const sum = () => Object.values(alloc).reduce((a, b) => a + b, 0);
+  const usedTrends = () => Object.values(alloc).filter(v => v > 0).length;
+
+  function step(id, d) {
+    const remaining = TOKENS - sum();
+    if (d > 0) {
+      if (remaining <= 0) { flashHint('Všechny tokeny jsou rozdělené. Uber jinde, pokud chceš přesunout.'); return false; }
+      if (alloc[id] === 0 && usedTrends() >= MAX_TRENDS) { flashHint(`Nejvýše ${MAX_TRENDS} trendů. Nejdřív úplně uber jiný trend.`); return false; }
+      alloc[id]++;
+    } else {
+      if (alloc[id] <= 0) return false;
+      alloc[id]--;
+    }
+    if (navigator.vibrate) navigator.vibrate(8);
+    saveDraft(); renderAlloc();
+    return true;
+  }
+
+  let hintTimer;
+  function flashHint(msg) { $('hint').textContent = msg; clearTimeout(hintTimer); hintTimer = setTimeout(() => $('hint').textContent = '', 2600); }
+
+  // podržení tlačítka opakuje krok
+  let holdT = null, holdI = null;
+  const stopHold = () => { clearTimeout(holdT); clearInterval(holdI); holdT = holdI = null; };
+  $('trends').addEventListener('pointerdown', e => {
+    const b = e.target.closest('button[data-d]'); if (!b || b.disabled) return;
+    e.preventDefault();
+    const id = b.closest('.t').dataset.id, d = +b.dataset.d;
+    if (!step(id, d)) return;
+    holdT = setTimeout(() => { holdI = setInterval(() => { if (!step(id, d)) stopHold(); }, 90); }, 380);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('trends').addEventListener(ev, stopHold));
+  $('trends').addEventListener('click', e => {           // klávesnice (Enter/mezerník) – detail===0
+    const b = e.target.closest('button[data-d]'); if (!b || e.detail !== 0) return;
+    step(b.closest('.t').dataset.id, +b.dataset.d);
+  });
+  $('trends').addEventListener('contextmenu', e => e.preventDefault());
+
+  function renderAlloc() {
+    const total = sum(), remaining = TOKENS - total, used = usedTrends();
+    $('left').textContent = remaining === 0 ? 'Všech ' + TOKENS + ' tokenů rozděleno' : `Zbývá ${remaining} ${plural(remaining, 'token', 'tokeny', 'tokenů')}`;
+    $('left').classList.toggle('done', remaining === 0);
+    $('used').textContent = `${used} z ${MAX_TRENDS} trendů`;
+    $('used').classList.toggle('full', used >= MAX_TRENDS);
+
+    // čipy obarvené podle trendů
+    const colors = [];
+    trends.forEach(t => { for (let i = 0; i < alloc[t.id]; i++) colors.push(t.color); });
+    $('chips').innerHTML = Array.from({ length: TOKENS }, (_, i) =>
+      i < colors.length ? `<i class="used" style="--c:${colors[i]}"></i>` : '<i></i>').join('');
+
+    trends.forEach(t => {
+      const li = $('trends').querySelector(`[data-id="${t.id}"]`);
+      const v = alloc[t.id];
+      li.classList.toggle('on', v > 0);
+      li.classList.toggle('locked', v === 0 && used >= MAX_TRENDS);
+      li.querySelector('.v').textContent = v;
+      li.querySelector('.share').textContent = v ? `${Math.round(v / TOKENS * 100)} % tvého tipu` : '';
+      li.querySelector('[data-d="-1"]').disabled = v === 0;
+      // "+" zůstává klikatelné, aby hráč po ťuknutí dostal vysvětlení, proč to nejde
+      li.querySelector('[data-d="1"]').setAttribute('aria-disabled', remaining === 0 || (v === 0 && used >= MAX_TRENDS));
+    });
+
+    const btn = $('sendBtn');
+    if (S && S.phase === 'lobby') { btn.disabled = true; btn.textContent = 'Hlasování ještě nezačalo'; }
+    else if (remaining > 0) { btn.disabled = true; btn.textContent = `Rozděl ještě ${remaining} ${plural(remaining, 'token', 'tokeny', 'tokenů')}`; }
+    else { btn.disabled = false; btn.textContent = 'Zkontrolovat a odeslat'; }
+  }
+
+  function summaryHtml(a) {
+    return trends.filter(t => a[t.id] > 0).sort((x, y) => a[y.id] - a[x.id]).map(t => `
+      <div class="r" style="--c:${t.color}">
+        <div>${esc(t.name)}<div class="bar" style="width:${a[t.id] / TOKENS * 100}%"></div></div>
+        <div class="n">${a[t.id]}</div>
+      </div>`).join('');
+  }
+
+  $('sendBtn').addEventListener('click', () => {
+    $('sheetSummary').innerHTML = summaryHtml(alloc);
+    $('sendErr').textContent = '';
+    $('sheet').classList.remove('hidden');
+    $('confirmBtn').focus();
+  });
+  $('backBtn').addEventListener('click', () => $('sheet').classList.add('hidden'));
+  $('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('sheet').classList.add('hidden'); });
+  $('confirmBtn').addEventListener('click', () => {
+    $('confirmBtn').disabled = true;
+    const payload = Object.fromEntries(Object.entries(alloc).filter(([, v]) => v > 0));
+    socket.timeout(8000).emit('player:submit', { deviceId, allocation: payload }, (err, res) => {
+      $('confirmBtn').disabled = false;
+      if (err) return $('sendErr').textContent = 'Server neodpovídá. Tip nebyl odeslán, zkus to znovu.';
+      if (res.error) return $('sendErr').textContent = res.error;
+      $('sheet').classList.add('hidden');
+      try { localStorage.removeItem('tg-draft'); } catch (e) {}
+    });
+  });
+
+  // ---------- routing ----------
+  function show(id) { ['vJoin', 'vAlloc', 'vStatus'].forEach(v => $(v).classList.toggle('hidden', v !== id)); }
+
+  function render() {
+    if (!S) return;
+    const me = S.me;
+    const open = S.phase === 'lobby' || S.phase === 'voting';
+
+    if (!me) {
+      if (open) { show('vJoin'); return; }
+      return status('Hlasování skončilo', 'Do hry se už nedá připojit. Výsledky sleduj na velké obrazovce.');
+    }
+
+    if (!me.submittedAt) {
+      if (open) { $('meNick').textContent = me.nick; show('vAlloc'); renderAlloc(); return; }
+      $('sheet').classList.add('hidden');
+      return status('Hlasování skončilo', 'Tvůj tip nebyl odeslán včas, takže se tentokrát nehodnotí.');
+    }
+
+    // tip odeslán
+    const mine = me.allocation;
+    if (S.phase === 'winners' && S.result) {
+      const r = S.result;
+      return status(r.rank === 1 ? 'Vyhráváš!' : `${r.rank}. místo`,
+        `Pořadí ${r.rank} z ${r.of} hodnocených tipů.`,
+        `<div class="big">${pct(r.score)}</div><div class="lbl">shoda s rozdělením sálu</div>`, mine);
+    }
+    if (S.phase === 'results') return status('Odhalují se výsledky', 'Sleduj velkou obrazovku. Tvoje pořadí uvidíš po vyhlášení vítězů.', '', mine);
+    if (S.phase === 'closed') return status('Hlasování skončilo', 'Tvůj tip je započítaný. Za chvíli odhalíme výsledky.', '', mine);
+    return status('Tip odeslán', 'Díky, hraješ jako ' + esc(me.nick) + '. Výsledky se odhalí na velké obrazovce po konci hlasování.', '', mine);
+  }
+
+  function status(title, text, resultHtml = '', mine = null) {
+    $('stTitle').textContent = title;
+    $('stText').innerHTML = text;
+    $('stResult').innerHTML = resultHtml;
+    $('stSummary').innerHTML = mine ? summaryHtml(mine) : '';
+    show('vStatus');
+  }
+
+  setInterval(() => {
+    if (!S || S.phase !== 'voting' || !S.endsAt) { $('timer').textContent = ''; return; }
+    const left = Math.max(0, S.endsAt - (Date.now() + clockOffset));
+    $('timer').textContent = `Konec za ${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`;
+  }, 500);
+})();
+</script>
+</body>
+</html>

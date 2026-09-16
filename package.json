@@ -1,0 +1,24 @@
+{
+  "name": "trend-game",
+  "version": "1.0.0",
+  "description": "Živá hra na predikci fintech trendů pro LED obrazovku a telefony",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test:load": "node test/load-test.js 200"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.3.0",
+    "express": "^5.2.1",
+    "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.3"
+  },
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  }
+}
