@@ -76,7 +76,7 @@
         <h2>Průběh</h2>
         <div class="bar">
           <button data-phase="lobby">1. Lobby s QR</button>
-          <span class="bar"><button data-phase="voting">2. Spustit hlasování</button><input type="number" id="minutes" min="0" max="60" step="0.5" value="3" style="width:78px" title="Minuty, 0 = bez časovače"> min</span>
+          <span class="bar"><button data-phase="voting">2. Spustit hlasování</button><input type="number" id="minutes" min="0" max="240" step="1" value="60" style="width:78px" title="Minuty, 0 = bez časovače"> min</span>
           <button data-phase="closed">3. Uzavřít</button>
           <button data-phase="results">4. Odhalit výsledky</button>
           <button data-phase="winners">5. Vyhlásit vítěze</button>
@@ -122,6 +122,7 @@
   const cfg = await (await fetch('/api/config')).json();
   const tName = Object.fromEntries(cfg.trends.map(t => [t.id, t]));
   $('title').textContent = cfg.title;
+  $('minutes').value = cfg.VOTING_MINUTES ?? 3;
 
   let KEY = decodeURIComponent(location.hash.slice(1)) || sessionStorage.getItem('tg-admin') || '';
   let S = null, offset = 0;

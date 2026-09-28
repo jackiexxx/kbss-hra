@@ -129,6 +129,8 @@ function joinUrlFor(req) {
 const publicConfig = {
   title: config.title, subtitle: config.subtitle,
   TOKENS, MAX_TRENDS, NICK_MAX: config.NICK_MAX, trends,
+  VOTING_MINUTES: config.VOTING_MINUTES ?? 3,
+  VOTING_VIEW: config.VOTING_VIEW === 'stats' ? 'stats' : 'qr',
 };
 
 function screenPayload() {

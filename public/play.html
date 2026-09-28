@@ -41,13 +41,15 @@
   .bank .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
   .bank .left { font-size: 22px; font-weight: 800; font-stretch: 88%; }
   .bank .left.done { color: #9BE15D; }
-  .bank .right { font-size: 15px; color: var(--muted); }
+  .bank .right { font-size: 15px; color: var(--muted); display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+  .timer { font-size: 15px; font-weight: 700; color: var(--paper); }
+  .timer:empty { display: none; }
+  .timer.urgent { color: var(--warn); }
   .bank .right.full { color: var(--paper); }
   .chips { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 4px; margin-top: 10px; }
   .chips i { height: 12px; border-radius: 3px; background: var(--paper); transition: background .2s; }
   .chips i.used { background: var(--c, var(--line)); opacity: .9; }
   .hint { font-size: 14px; color: var(--warn); margin-top: 8px; min-height: 18px; }
-  .timer { font-size: 15px; color: var(--muted); }
 
   .me { display: flex; justify-content: space-between; align-items: baseline; margin: 18px 0 6px; font-size: 15px; color: var(--muted); }
   .me b { color: var(--paper); }
@@ -105,6 +107,7 @@
   <section class="join hidden" id="vJoin">
     <h1 id="title"></h1>
     <p class="sub" id="subtitle"></p>
+    <p class="timer" id="joinTimer" style="margin-top:18px"></p>
     <form id="joinForm" autocomplete="off">
       <label for="nick">Přezdívka, pod kterou tě uvidí sál</label>
       <input type="text" id="nick" maxlength="18" placeholder="např. Tereza z Brna" enterkeyhint="go" autocapitalize="words">
@@ -118,12 +121,12 @@
     <div class="bank">
       <div class="top">
         <div class="left" id="left"></div>
-        <div class="right" id="used"></div>
+        <div class="right"><span id="used"></span><span class="timer" id="timer"></span></div>
       </div>
       <div class="chips" id="chips"></div>
       <div class="hint" id="hint"></div>
     </div>
-    <div class="me"><span>Hraješ jako <b id="meNick"></b></span><span class="timer" id="timer"></span></div>
+    <div class="me"><span>Hraješ jako <b id="meNick"></b></span></div>
     <ul class="trends" id="trends"></ul>
     <details class="rules">
       <summary>Jak se vyhrává</summary>
@@ -181,7 +184,19 @@
 
   // rozpracované rozdělení přežije obnovení stránky
   let alloc = Object.fromEntries(trends.map(t => [t.id, 0]));
-  try { Object.assign(alloc, JSON.parse(localStorage.getItem('tg-draft') || '{}')); } catch (e) {}
+  try {
+    // Načítáme jen tokeny u trendů, které v aktuální konfiguraci existují. Po změně trendů
+    // by jinak v součtu strašily neviditelné tokeny ze starého rozdělení.
+    const draft = JSON.parse(localStorage.getItem('tg-draft') || '{}');
+    const clean = {};
+    for (const t of trends) {
+      const v = draft[t.id];
+      if (Number.isInteger(v) && v > 0 && v <= TOKENS) clean[t.id] = v;
+    }
+    const total = Object.values(clean).reduce((a, b) => a + b, 0);
+    if (total <= TOKENS && Object.keys(clean).length <= MAX_TRENDS) Object.assign(alloc, clean);
+    else localStorage.removeItem('tg-draft');
+  } catch (e) {}
   const saveDraft = () => { try { localStorage.setItem('tg-draft', JSON.stringify(alloc)); } catch (e) {} };
 
   let S = null, clockOffset = 0;
@@ -353,10 +368,16 @@
     show('vStatus');
   }
 
+  // Odpočet vidí hráč jak před zadáním přezdívky, tak během rozdělování tokenů.
   setInterval(() => {
-    if (!S || S.phase !== 'voting' || !S.endsAt) { $('timer').textContent = ''; return; }
+    const els = [$('timer'), $('joinTimer')];
+    if (!S || S.phase !== 'voting' || !S.endsAt) { els.forEach(e => { e.textContent = ''; e.classList.remove('urgent'); }); return; }
     const left = Math.max(0, S.endsAt - (Date.now() + clockOffset));
-    $('timer').textContent = `Konec za ${Math.floor(left / 60000)}:${String(Math.floor(left / 1000) % 60).padStart(2, '0')}`;
+    const m = Math.floor(left / 60000), sec = Math.floor(left / 1000) % 60;
+    const text = m >= 1
+      ? `Do konce hlasování ${m}:${String(sec).padStart(2, '0')}`
+      : `Do konce hlasování ${sec} ${plural(sec, 'sekunda', 'sekundy', 'sekund')}`;
+    els.forEach(e => { e.textContent = text; e.classList.toggle('urgent', left < 60000); });
   }, 500);
 })();
 </script>

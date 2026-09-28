@@ -350,17 +350,22 @@
   socket.on('screen:state', s => {
     const prev = S; S = s;
     clockOffset = s.serverNow - Date.now();
-    document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === s.phase));
+    // Během hlasování může obrazovka zůstat u lobby s QR kódem, aby se mohli přidávat opozdilci.
+    const qrDuringVoting = s.phase === 'voting' && !s.crowdPct && cfg.VOTING_VIEW !== 'stats';
+    const view = qrDuringVoting ? 'lobby' : s.phase;
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === view));
 
     if (s.phase !== 'results') revealedResults = false;
     if (s.phase !== 'winners') revealedWinners = false;
     if (!prev || prev.phase !== s.phase) clearReveal();
 
-    $('foot').innerHTML = s.phase === 'voting' ? `Připojeno <b>${fmt(s.joined)}</b> hráčů` : '';
+    $('foot').innerHTML = s.phase === 'voting'
+      ? `Připojeno <b>${fmt(s.joined)}</b> ${plural(s.joined, 'hráč', 'hráči', 'hráčů')}, odevzdaných tipů <b>${fmt(s.voted)}</b>`
+      : '';
     $('footR').textContent = s.phase === 'voting' ? `${fmt(s.tokensInPlay)} tokenů ve hře` : '';
 
 
-    if (s.phase === 'voting') {
+    if (s.phase === 'voting' && !qrDuringVoting) {
       const live = !!s.crowdPct;
       $('blindPool').style.display = live ? 'none' : '';
       $('liveBars').style.display = live ? '' : 'none';

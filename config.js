@@ -16,6 +16,15 @@ module.exports = {
   // S limitem 5 je rovnoměrné rozprostření podprůměrné; s limitem 3 je příliš mnoho remíz.
   MAX_TRENDS: 5,
 
+  // Výchozí délka hlasování v minutách, předvyplní se v administraci (0 = bez časovače).
+  VOTING_MINUTES: 60,
+
+  // Co ukazuje velká obrazovka během hlasování:
+  //   'qr'    = stejný pohled jako lobby (velký QR kód a návod), aby se mohli přidávat opozdilci
+  //   'stats' = tečky za odevzdané tipy a jména hlasujících
+  // Rozložení tokenů zůstává skryté v obou případech, dokud se nezapne živý graf v administraci.
+  VOTING_VIEW: 'qr',
+
   // Maximální délka přezdívky
   NICK_MAX: 18,
 

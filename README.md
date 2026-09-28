@@ -48,7 +48,7 @@ Hra běží v paměti jednoho serveru a ukládá se průběžně (s prodlevou 0,
 
 1. **Před akcí:** v administraci klikni na „Smazat všechna data“ (napiš RESET). Otevři `/screen` na LED počítači.
 2. **Lobby s QR:** obrazovka ukáže QR kód a počet připojených. Hráči se mohou připojit a rozdělit tokeny, odeslat zatím nemohou.
-3. **Spustit hlasování:** zadej počet minut (doporučeno 3). Po uplynutí se hlasování samo uzavře. Časovač jde prodloužit o minutu.
+3. **Spustit hlasování:** pole s minutami je předvyplněné hodnotou z `config.js` (výchozí 60). Po uplynutí času se hlasování samo uzavře, časovač jde kdykoli prodloužit nebo zrušit. Obrazovka zůstane u QR kódu a návodu, aby se mohli přidávat i opozdilci; v hlavičce běží odpočet a v patičce počet hráčů a odevzdaných tipů.
 4. **Uzavřít:** pořadí se zmrazí, pozdní tipy už server nepřijme.
 5. **Odhalit výsledky:** sloupce naskakují od 10. místa, první tři s pauzou. Celé odhalení trvá asi 14 sekund.
 6. **Vyhlásit vítěze:** stupně vítězů a místa 4–10. Každý hráč uvidí na telefonu své pořadí a shodu.
@@ -57,6 +57,8 @@ Hra běží v paměti jednoho serveru a ukládá se průběžně (s prodlevou 0,
 Nevhodnou přezdívku přejmenuješ nebo odebereš v tabulce hráčů. Změna se hned projeví na obrazovce.
 
 ## Pravidla (text k moderování)
+
+Podrobné vysvětlení hry pro účastníky i moderátora, včetně příkladu s čísly, je v [PRAVIDLA.md](PRAVIDLA.md).
 
 Každý má 20 tokenů a rozdělí je nejvýše mezi 5 trendů. Vyhrává ten, jehož rozdělení se nejvíc shoduje s rozdělením celého sálu.
 
@@ -76,7 +78,7 @@ Pravidla jsou ověřená simulací (`test/strategy-sim.py`, 200 hráčů, stovky
 
 ## Úpravy
 
-Vše podstatné je v `config.js`: nadpis, podtitul, počet tokenů, limit trendů, názvy a barvy trendů. Po změně restartuj server.
+Vše podstatné je v `config.js`: nadpis, podtitul, počet tokenů, limit trendů, názvy a barvy trendů, výchozí délka hlasování (`VOTING_MINUTES`) a co obrazovka ukazuje během hlasování (`VOTING_VIEW`: `qr` pro QR kód a návod, `stats` pro tečky a jména hlasujících). Po změně restartuj server.
 
 Pokud změníš tokeny, limit nebo ID trendů, starý uložený stav se při startu automaticky odloží do zálohy.
 
