@@ -4,7 +4,7 @@
 module.exports = {
   // Texty na obrazovce
   title: 'FINTECH VIZIONÁŘ',
-  subtitle: 'Kam směřuje budoucnost českého fintechu?',
+  subtitle: 'Vyber, co bude mít největší dopad na český fintech v příštích deseti letech.',
 
   // Kolik tokenů dostane každý hráč. Musí je utratit všechny.
   // 20 tokenů = rozlišení 5 %. Simulace ukázala, že jemnější krok (100 tokenů po 5)
@@ -30,16 +30,17 @@ module.exports = {
 
   // Trendy. id se nesmí měnit během hry. color = barva sloupce na LED.
   trends: [
-    { id: 'ai-agenti',        name: 'AI Agenti',                  color: '#5B8CFF' },
-    { id: 'tokenizace',       name: 'Tokenizace & Stablecoiny',   color: '#2FD4A7' },
-    { id: 'digitalni-euro',   name: 'Digitální Euro',             color: '#4FC3F7' },
-    { id: 'open-finance',     name: 'Open Finance & PSD3',        color: '#B98CFF' },
-    { id: 'embedded-finance', name: 'Embedded Finance',           color: '#FF7A9A' },
-    { id: 'defi',             name: 'DeFi',                       color: '#9BE15D' },
-    { id: 'eu-wallet',        name: 'EU Wallet',                  color: '#FFB547' },
-    { id: 'quantum',          name: 'Quantum computing',          color: '#E4E7FF' },
-    { id: 'startupovy-zakon', name: 'Startupový zákon',           color: '#FFE36E' },
-    { id: 'cybersecurity',    name: 'Cybersecurity',              color: '#FF8A4C' },
+    { id: 'ai-agenti',        name: 'AI & AI Agenti',                    color: '#5B8CFF' },
+    { id: 'tokenizace-defi',  name: 'Tokenizace & DeFi',                 color: '#2FD4A7' },
+    { id: 'stablecoiny-euro', name: 'Stablecoiny & Digitální Euro',      color: '#4FC3F7' },
+    { id: 'open-finance',     name: 'Open Finance & PSD3',               color: '#B98CFF' },
+    { id: 'startupovy-zakon', name: 'Startupový zákon v ČR',             color: '#FFE36E' },
+    { id: 'embedded-finance', name: 'Embedded Finance',                  color: '#FF7A9A' },
+    { id: 'jednotny-eu-trh',  name: 'Jednotný EU trh (kapitálový, EU Inc.)', color: '#9BE15D' },
+    { id: 'eu-wallet',        name: 'EU Wallet',                         color: '#FFB547' },
+    { id: 'quantum',          name: 'Quantum computing',                 color: '#E4E7FF' },
+    { id: 'cybersecurity',    name: 'Cybersecurity (FraudTech, RegTech)', color: '#FF8A4C' },
   ],
 };
+;
 ;
