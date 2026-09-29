@@ -90,11 +90,11 @@
   .bars { position: relative; height: 100%; }
   .row {
     position: absolute; left: 0; right: 0; height: calc(100% / 10);
-    display: grid; grid-template-columns: 64px 600px 1fr 150px 190px; align-items: center; gap: 24px;
+    display: grid; grid-template-columns: 64px var(--nmw, 680px) 1fr 150px 190px; align-items: center; gap: 24px;
     transition: transform .9s cubic-bezier(.2,.8,.2,1), opacity .6s;
   }
   .row .rk { font-size: 36px; font-weight: 800; font-stretch: 120%; color: var(--muted); text-align: right; }
-  .row .nm { font-size: 44px; font-weight: 700; font-stretch: 72%; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .nm { font-size: var(--nmSize, 44px); font-weight: 700; font-stretch: 72%; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row .track { height: 62%; position: relative; }
   .row .fill {
     position: absolute; left: 0; top: 0; bottom: 0; width: 0;
@@ -103,9 +103,9 @@
   }
   .row .tok { font-size: 24px; color: var(--muted); font-stretch: 90%; text-align: right; white-space: nowrap; }
   .row .pct { font-size: 52px; font-weight: 800; font-stretch: 108%; text-align: right; line-height: 1; white-space: nowrap; }
-  #liveBars .row { grid-template-columns: 52px 400px 1fr 170px; }
+  #liveBars .row { grid-template-columns: 52px var(--nmw, 460px) 1fr 170px; }
   #liveBars .row .tok { display: none; }
-  #liveBars .row .nm { font-size: 38px; }
+  #liveBars .row .nm { font-size: var(--nmSize, 38px); }
   #liveBars .row .pct { font-size: 44px; }
   .bars.hidden-reveal .row { opacity: 0; }
   .bars .row.shown { opacity: 1; }
@@ -143,6 +143,12 @@
 
   #confetti { position: absolute; inset: 0; pointer-events: none; }
   .offline { position: absolute; right: 24px; bottom: 16px; font-size: 20px; color: #FF7A6B; display: none; }
+  #badge {
+    position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%);
+    background: rgba(243,245,236,.92); color: var(--ink); font-size: 26px; font-weight: 700; font-stretch: 90%;
+    padding: 12px 26px; border-radius: 14px; opacity: 0; transition: opacity .3s; pointer-events: none;
+  }
+  #badge.on { opacity: 1; }
   .offline.on { display: block; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -202,6 +208,7 @@
   <footer><span id="foot"></span><span id="footR"></span></footer>
   <canvas id="confetti"></canvas>
   <div class="offline" id="offline">Spojení se serverem ztraceno, obnovuji…</div>
+  <div id="badge"></div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -214,6 +221,7 @@
   function fit() {
     const s = Math.min(innerWidth / W, innerHeight / H);
     stage.style.transform = `translate(${-W * s / 2}px, ${-H * s / 2}px) scale(${s})`;
+    fitNames($('resBars'), 44); fitNames($('liveBars'), 38);
     layoutBars();
   }
   addEventListener('resize', fit);
@@ -242,6 +250,14 @@
       </div>`).join('');
   }
   buildBars($('liveBars')); buildBars($('resBars'));
+
+  // Názvy trendů se zmenší jen tak, aby se ty nejdelší vešly bez zkrácení třemi tečkami.
+  function fitNames(el, max) {
+    let size = max;
+    el.style.setProperty('--nmSize', size + 'px');
+    const over = () => [...el.querySelectorAll('.nm')].some(n => n.scrollWidth > n.clientWidth + 1);
+    while (size > 26 && over()) { size -= 2; el.style.setProperty('--nmSize', size + 'px'); }
+  }
 
   let lastBarData = { live: null, res: null };
   function renderBars(el, crowdPct, totals, key) {
@@ -341,10 +357,54 @@
     })(t0);
   }
 
+  // ---------- ovládání prezentační klikačkou ----------
+  // Zapne se tím, že se obrazovka otevře s administrátorským klíčem: /screen#key=<ADMIN_KEY>
+  // Klikačky posílají stejné klávesy jako prezentace, takže okno hry se chová jako další slidy.
+  const presenterKey = new URLSearchParams(location.hash.slice(1)).get('key') || qs.get('key') || '';
+  const PHASE_ORDER = ['lobby', 'voting', 'closed', 'results', 'winners'];
+  const PHASE_NAME = { lobby: 'Lobby s QR kódem', voting: 'Hlasování spuštěno', closed: 'Hlasování uzavřeno', results: 'Výsledky sálu', winners: 'Vyhlášení vítězů' };
+  let presenter = false, busy = false;
+
+  let badgeTimer;
+  function badge(text, ms = 2600) {
+    $('badge').textContent = text;
+    $('badge').classList.add('on');
+    clearTimeout(badgeTimer);
+    badgeTimer = setTimeout(() => $('badge').classList.remove('on'), ms);
+  }
+
+  function step(dir) {
+    if (!presenter || !S || busy) return;
+    const i = PHASE_ORDER.indexOf(S.phase);
+    const next = PHASE_ORDER[i + dir];
+    if (!next) return badge(dir > 0 ? 'Tohle je poslední fáze' : 'Tohle je první fáze');
+    // Zpět do hlasování se z uzavřené hry vrátit nedá, aby klik omylem neodmrazil pořadí.
+    if (dir < 0 && next === 'voting') return badge('Znovu otevřít hlasování jde jen v administraci');
+    busy = true;
+    socket.emit('admin:phase', { phase: next, minutes: next === 'voting' ? (cfg.VOTING_MINUTES ?? 0) : 0 }, r => {
+      busy = false;
+      badge(r && r.error ? r.error : PHASE_NAME[next]);
+    });
+  }
+
+  addEventListener('keydown', e => {
+    if (!presenter) return;
+    if (['ArrowRight', 'PageDown', ' ', 'Enter', 'ArrowDown'].includes(e.key)) { e.preventDefault(); step(1); }
+    else if (['ArrowLeft', 'PageUp', 'ArrowUp'].includes(e.key)) { e.preventDefault(); step(-1); }
+  });
+
   // ---------- state ----------
   let S = null, clockOffset = 0;
   const socket = io({ transports: ['websocket', 'polling'] });
-  socket.on('connect', () => { $('offline').classList.remove('on'); socket.emit('screen:hello'); });
+  socket.on('connect', () => {
+    $('offline').classList.remove('on');
+    socket.emit('screen:hello');
+    if (presenterKey) socket.emit('admin:hello', { key: presenterKey, silent: true }, r => {
+      presenter = !(r && r.error);
+      badge(presenter ? 'Ovládání klikačkou zapnuto' : 'Neplatný klíč, ovládání klikačkou nefunguje', presenter ? 4000 : 8000);
+      if (presenter) history.replaceState(null, '', location.pathname);
+    });
+  });
   socket.on('disconnect', () => $('offline').classList.add('on'));
 
   socket.on('screen:state', s => {
